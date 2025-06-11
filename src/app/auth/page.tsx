@@ -20,13 +20,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 const loginSchema = z.object({
   name: z.string().optional(),
-  phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number"),
+  phoneNumber: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid Number number"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 const signupSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
-  phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number"),
+  phoneNumber: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
@@ -39,15 +39,15 @@ export default function AuthPage() {
   const form = useForm({
     resolver: zodResolver(isSignup ? signupSchema : loginSchema),
     defaultValues: isSignup
-      ? { name: "", phone: "", password: "" }
-      : { phone: "", password: "" },
+      ? { name: "", phoneNumber: "", password: "" }
+      : { phoneNumber: "", password: "" },
   });
 
   const onSubmit = async (data: any) => {
     try {
       const endpoint = isSignup
-        ? "/api/v1/auth/register/"
-        : "/api/v1/auth/login/";
+        ? "http://127.0.0.1:8000/api/users/register"
+        : "http://127.0.0.1:8000/api/users/login";
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -91,7 +91,7 @@ export default function AuthPage() {
               )}
               <FormField
                 control={form.control}
-                name="phone"
+                name="phoneNumber"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Phone</FormLabel>

@@ -2,7 +2,7 @@ import { QueryClient } from "@tanstack/react-query";
 
 export const queryClient = new QueryClient();
 
-export const API_URL = "https://api.examinator.app/api/v1"; // Замените на ваш API
+export const API_URL = "http://127.0.0.1:8000/api/"; // Замените на ваш API
 
 export async function fetchWithAuth(
   endpoint: string,
