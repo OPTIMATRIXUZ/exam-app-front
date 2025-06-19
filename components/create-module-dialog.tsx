@@ -24,8 +24,7 @@ interface CreateModuleDialogProps {
 export default function CreateModuleDialog({ open, onOpenChange }: CreateModuleDialogProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const { addModule } = useModulesStore();
+  const { addModule, isLoading } = useModulesStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,28 +34,28 @@ export default function CreateModuleDialog({ open, onOpenChange }: CreateModuleD
       return;
     }
 
-    setIsLoading(true);
-
-    // Simulate API call
-    setTimeout(() => {
-      addModule({
-        title: title.trim(),
-        description: description.trim(),
-        isActive: false,
-      });
-      
+    const success = await addModule({
+      title: title.trim(),
+      description: description.trim(),
+      isActive: false,
+    });
+    
+    if (success) {
       toast.success('Модуль успешно создан!');
       setTitle('');
       setDescription('');
-      setIsLoading(false);
       onOpenChange(false);
-    }, 500);
+    } else {
+      toast.error('Ошибка при создании модуля');
+    }
   };
 
   const handleClose = () => {
-    setTitle('');
-    setDescription('');
-    onOpenChange(false);
+    if (!isLoading) {
+      setTitle('');
+      setDescription('');
+      onOpenChange(false);
+    }
   };
 
   return (
@@ -79,6 +78,7 @@ export default function CreateModuleDialog({ open, onOpenChange }: CreateModuleD
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
+                disabled={isLoading}
               />
             </div>
             
@@ -90,12 +90,18 @@ export default function CreateModuleDialog({ open, onOpenChange }: CreateModuleD
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
+                disabled={isLoading}
               />
             </div>
           </div>
           
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleClose}>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={handleClose}
+              disabled={isLoading}
+            >
               Отмена
             </Button>
             <Button 

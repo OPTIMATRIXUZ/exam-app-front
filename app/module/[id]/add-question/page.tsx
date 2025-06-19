@@ -1,72 +1,122 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Checkbox } from '@/components/ui/checkbox';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Plus, Trash2, ArrowLeft } from 'lucide-react';
-import { useAuthStore } from '@/lib/auth-store';
-import { useModulesStore } from '@/lib/modules-store';
-import Navbar from '@/components/navbar';
-import { toast } from 'sonner';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Plus, Trash2, ArrowLeft, AlertCircle } from "lucide-react";
+import { useAuthStore } from "@/lib/auth-store";
+import { useModulesStore } from "@/lib/modules-store";
+import Navbar from "@/components/navbar";
+import { toast } from "sonner";
+import { QuestionCreate } from "@/lib/api";
 
-export default function AddQuestionPage({ params }: { params: { id: string } }) {
+export default function AddQuestionPage({
+  params,
+}: {
+  params: { id: string };
+}) {
   const { user } = useAuthStore();
-  const { modules, addQuestion } = useModulesStore();
+  const { modules, addQuestion, fetchModule } = useModulesStore();
   const router = useRouter();
 
-  const [questionText, setQuestionText] = useState('');
-  const [options, setOptions] = useState(['', '', '']);
-  const [questionType, setQuestionType] = useState<'single' | 'multiple'>('single');
+  const [module, setModule] = useState(modules.find((m) => m.id === params.id));
+  const [questionText, setQuestionText] = useState("");
+  const [options, setOptions] = useState(["", "", ""]);
+  const [questionType, setQuestionType] = useState<boolean>(false);
   const [correctAnswers, setCorrectAnswers] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingModule, setIsLoadingModule] = useState(false);
 
-  if (!user) {
-    router.push('/auth/login');
-    return null;
-  }
+  useEffect(() => {
+    if (user && params.id && !module) {
+      loadModule();
+    }
+  }, [user, params.id]);
 
-  const module = modules.find(m => m.id === params.id);
+  const loadModule = async () => {
+    setIsLoadingModule(true);
+    const moduleData = await fetchModule(params.id);
+    if (moduleData) {
+      setModule(moduleData);
+    }
+    setIsLoadingModule(false);
+  };
 
-  if (!module) {
+  useEffect(() => {
+    if (!user) {
+      router.push("/auth/login");
+    }
+  }, [user]);
+
+  if (isLoadingModule) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Модуль не найден</h1>
-            <Button onClick={() => router.push('/dashboard')}>
-              Вернуться к Dashboard
-            </Button>
+        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded mb-4"></div>
+            <div className="h-64 bg-gray-200 rounded"></div>
           </div>
         </main>
       </div>
     );
   }
 
+  if (!module) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Card className="border-red-200 bg-red-50">
+            <CardContent className="flex items-center gap-4 p-6">
+              <AlertCircle className="h-8 w-8 text-red-600" />
+              <div>
+                <h3 className="text-lg font-semibold text-red-900">
+                  Модуль не найден
+                </h3>
+                <p className="text-red-700">
+                  Модуль с ID {params.id} не существует или недоступен.
+                </p>
+                <Button
+                  onClick={() => router.push("/dashboard")}
+                  className="mt-4 bg-red-600 hover:bg-red-700"
+                >
+                  Вернуться к Dashboard
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
   const addOption = () => {
-    setOptions([...options, '']);
+    setOptions([...options, ""]);
   };
 
   const removeOption = (index: number) => {
-    if (options.length <= 3) {
-      toast.error('Минимум 3 варианта ответа');
+    if (options.length <= 2) {
+      toast.error("Минимум 2 варианта ответа");
       return;
     }
-    
+
     const newOptions = options.filter((_, i) => i !== index);
     setOptions(newOptions);
-    
+
     // Update correct answers
     const newCorrectAnswers = correctAnswers
-      .filter(answerIndex => answerIndex !== index)
-      .map(answerIndex => answerIndex > index ? answerIndex - 1 : answerIndex);
+      .filter((answerIndex) => answerIndex !== index)
+      .map((answerIndex) =>
+        answerIndex > index ? answerIndex - 1 : answerIndex
+      );
     setCorrectAnswers(newCorrectAnswers);
   };
 
@@ -77,69 +127,80 @@ export default function AddQuestionPage({ params }: { params: { id: string } }) 
   };
 
   const handleCorrectAnswerChange = (index: number, checked: boolean) => {
-    if (questionType === 'single') {
+    if (!questionType) {
       setCorrectAnswers(checked ? [index] : []);
     } else {
       if (checked) {
         setCorrectAnswers([...correctAnswers, index]);
       } else {
-        setCorrectAnswers(correctAnswers.filter(i => i !== index));
+        setCorrectAnswers(correctAnswers.filter((i) => i !== index));
       }
     }
   };
 
-  const handleSubmit = async (saveAndContinue: boolean = false) => {
+  const handleSubmit = async (saveAndContinue = false) => {
+    // валидация…
     if (!questionText.trim()) {
-      toast.error('Введите текст вопроса');
+      toast.error("Введите текст вопроса");
+      return;
+    }
+    if (options.length < 2) {
+      toast.error("Добавьте минимум 3 варианта ответа");
+      return;
+    }
+    if (options.some((opt) => !opt.trim())) {
+      toast.error("Все варианты ответов должны быть заполнены");
+      return;
+    }
+    if (!questionType && correctAnswers.length !== 1) {
+      toast.error("Выберите один правильный ответ для одиночного выбора");
       return;
     }
 
-    const filledOptions = options.filter(opt => opt.trim());
-    if (filledOptions.length < 2) {
-      toast.error('Минимум 2 варианта ответа');
+    if (questionType && correctAnswers.length === 0) {
+      toast.error("Выберите хотя бы один правильный ответ для множественного выбора");
       return;
     }
 
-    if (correctAnswers.length === 0) {
-      toast.error('Выберите хотя бы один правильный ответ');
-      return;
-    }
+    const filledOptions = options.filter((opt) => opt.trim());
+    // собираем DTO
+    const payload: QuestionCreate = {
+      text: questionText.trim(),
+      is_multiple_choice: questionType,
+      options: filledOptions.map((opt, idx) => ({
+        text: opt,
+        is_correct: correctAnswers.includes(idx),
+      })),
+    };
+
+    console.log("Submitting question:", payload);
 
     setIsLoading(true);
+    const success = await addQuestion(params.id, payload);
+    setIsLoading(false);
 
-    // Simulate API call
-    setTimeout(() => {
-      addQuestion(params.id, {
-        text: questionText.trim(),
-        type: questionType,
-        options: filledOptions,
-        correctAnswers: correctAnswers.filter(index => index < filledOptions.length)
-      });
-
-      toast.success('Вопрос успешно добавлен!');
-      
+    if (success) {
+      toast.success("Вопрос успешно добавлен!");
       if (saveAndContinue) {
-        // Reset form
-        setQuestionText('');
-        setOptions(['', '', '']);
+        // сброс формы
+        setQuestionText("");
+        setOptions(["", "", ""]);
         setCorrectAnswers([]);
-        setQuestionType('single');
+        setQuestionType(false);
       } else {
         router.push(`/module/${params.id}`);
       }
-      
-      setIsLoading(false);
-    }, 500);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
+
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             onClick={() => router.push(`/module/${params.id}`)}
             className="mb-4"
           >
@@ -164,6 +225,7 @@ export default function AddQuestionPage({ params }: { params: { id: string } }) 
                 value={questionText}
                 onChange={(e) => setQuestionText(e.target.value)}
                 rows={3}
+                disabled={isLoading}
               />
             </div>
 
@@ -172,15 +234,18 @@ export default function AddQuestionPage({ params }: { params: { id: string } }) 
               <Label>Тип вопроса</Label>
               <div className="flex items-center space-x-2">
                 <Switch
-                  checked={questionType === 'multiple'}
+                  checked={questionType}
                   onCheckedChange={(checked) => {
-                    setQuestionType(checked ? 'multiple' : 'single');
+                    setQuestionType(checked);
                     setCorrectAnswers([]);
                   }}
                   id="question-type"
+                  disabled={isLoading}
                 />
                 <label htmlFor="question-type" className="text-sm font-medium">
-                  {questionType === 'single' ? 'Один правильный ответ' : 'Несколько правильных ответов'}
+                  {!questionType
+                    ? "Один правильный ответ"
+                    : "Несколько правильных ответов"}
                 </label>
               </div>
             </div>
@@ -194,6 +259,7 @@ export default function AddQuestionPage({ params }: { params: { id: string } }) 
                   variant="outline"
                   size="sm"
                   onClick={addOption}
+                  disabled={isLoading}
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Добавить вариант
@@ -201,26 +267,34 @@ export default function AddQuestionPage({ params }: { params: { id: string } }) 
               </div>
 
               <div className="space-y-3">
-                {questionType === 'single' ? (
-                  <RadioGroup 
-                    value={correctAnswers[0]?.toString() || ''}
-                    onValueChange={(value) => setCorrectAnswers([parseInt(value)])}
+                {!questionType ? (
+                  <RadioGroup
+                    value={correctAnswers[0]?.toString() || ""}
+                    onValueChange={(value) =>
+                      setCorrectAnswers([parseInt(value)])
+                    }
                   >
                     {options.map((option, index) => (
                       <div key={index} className="flex items-center gap-3">
-                        <RadioGroupItem value={index.toString()} id={`option-${index}`} />
+                        <RadioGroupItem
+                          value={index.toString()}
+                          id={`option-${index}`}
+                          disabled={isLoading}
+                        />
                         <Input
                           placeholder={`Вариант ${index + 1}`}
                           value={option}
                           onChange={(e) => updateOption(index, e.target.value)}
                           className="flex-1"
+                          disabled={isLoading}
                         />
-                        {options.length > 3 && (
+                        {options.length > 2 && (
                           <Button
                             type="button"
                             variant="outline"
                             size="icon"
                             onClick={() => removeOption(index)}
+                            disabled={isLoading}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -234,23 +308,26 @@ export default function AddQuestionPage({ params }: { params: { id: string } }) 
                       <div key={index} className="flex items-center gap-3">
                         <Checkbox
                           checked={correctAnswers.includes(index)}
-                          onCheckedChange={(checked) => 
+                          onCheckedChange={(checked) =>
                             handleCorrectAnswerChange(index, checked as boolean)
                           }
                           id={`option-${index}`}
+                          disabled={isLoading}
                         />
                         <Input
                           placeholder={`Вариант ${index + 1}`}
                           value={option}
                           onChange={(e) => updateOption(index, e.target.value)}
                           className="flex-1"
+                          disabled={isLoading}
                         />
-                        {options.length > 3 && (
+                        {options.length > 2 && (
                           <Button
                             type="button"
                             variant="outline"
                             size="icon"
                             onClick={() => removeOption(index)}
+                            disabled={isLoading}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -269,7 +346,7 @@ export default function AddQuestionPage({ params }: { params: { id: string } }) 
                 disabled={isLoading}
                 className="bg-blue-600 hover:bg-blue-700"
               >
-                {isLoading ? 'Сохранение...' : 'Сохранить'}
+                {isLoading ? "Сохранение..." : "Сохранить"}
               </Button>
               <Button
                 onClick={() => handleSubmit(true)}
@@ -281,6 +358,7 @@ export default function AddQuestionPage({ params }: { params: { id: string } }) 
               <Button
                 variant="outline"
                 onClick={() => router.push(`/module/${params.id}`)}
+                disabled={isLoading}
               >
                 Отмена
               </Button>

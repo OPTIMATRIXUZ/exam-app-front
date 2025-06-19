@@ -1,44 +1,51 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuthStore } from '@/lib/auth-store';
-import { BookOpen } from 'lucide-react';
-import { toast } from 'sonner';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useAuthStore } from "@/lib/auth-store";
+import { BookOpen } from "lucide-react";
+import { toast } from "sonner";
 
 export default function LoginPage() {
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuthStore();
+  const { user } = useAuthStore();
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const { login, isLoading } = useAuthStore();
   const router = useRouter();
+
+  useEffect(() => {
+    if (user) {
+      router.push("/dashboard");
+    }
+  }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      // Mock login - in real app, this would be an API call
-      if (phone && password) {
-        const user = {
-          id: '1',
-          name: 'Иван Петров',
-          phone: phone
-        };
-        login(user);
-        toast.success('Добро пожаловать!');
-        router.push('/dashboard');
-      } else {
-        toast.error('Пожалуйста, заполните все поля');
-      }
-      setIsLoading(false);
-    }, 1000);
+    if (!phone.trim() || !password.trim()) {
+      toast.error("Пожалуйста, заполните все поля");
+      return;
+    }
+
+    const success = await login(phone.trim(), password);
+
+    if (success) {
+      toast.success("Добро пожаловать!");
+      router.push("/dashboard");
+    } else {
+      toast.error("Неверный телефон или пароль");
+    }
   };
 
   return (
@@ -69,9 +76,10 @@ export default function LoginPage() {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   required
+                  disabled={isLoading}
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="password">Пароль</Label>
                 <Input
@@ -80,22 +88,26 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  disabled={isLoading}
                 />
               </div>
 
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="w-full bg-blue-600 hover:bg-blue-700"
                 disabled={isLoading}
               >
-                {isLoading ? 'Вход...' : 'Войти'}
+                {isLoading ? "Вход..." : "Войти"}
               </Button>
             </form>
 
             <div className="mt-6 text-center">
               <p className="text-gray-600">
-                Нет аккаунта?{' '}
-                <Link href="/auth/register" className="text-blue-600 hover:underline">
+                Нет аккаунта?{" "}
+                <Link
+                  href="/auth/register"
+                  className="text-blue-600 hover:underline"
+                >
                   Зарегистрироваться
                 </Link>
               </p>

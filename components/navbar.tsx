@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useAuthStore } from '@/lib/auth-store';
-import { Button } from '@/components/ui/button';
-import { BookOpen, User, LogOut, Menu, X } from 'lucide-react';
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import Link from "next/link";
+import { useAuthStore } from "@/lib/auth-store";
+import { Button } from "@/components/ui/button";
+import { BookOpen, User, LogOut, Menu, X } from "lucide-react";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 
 export default function Navbar() {
   const { user, logout } = useAuthStore();
@@ -31,14 +31,14 @@ export default function Navbar() {
               </span>
             </Link>
           </div>
-          
+
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-4">
             {user ? (
               <div className="flex items-center space-x-4">
                 <Link href="/dashboard">
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     className="hover:bg-blue-50 hover:text-blue-600 transition-colors duration-200"
                   >
                     Dashboard
@@ -46,19 +46,22 @@ export default function Navbar() {
                 </Link>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       size="icon"
                       className="hover:bg-blue-50 hover:text-blue-600 transition-colors duration-200"
                     >
                       <User className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48 animate-scale-in">
+                  <DropdownMenuContent
+                    align="end"
+                    className="w-48 animate-scale-in"
+                  >
                     <DropdownMenuItem className="font-medium text-gray-900">
-                      {user.name}
+                      {user.full_name}
                     </DropdownMenuItem>
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={logout}
                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
@@ -71,7 +74,7 @@ export default function Navbar() {
             ) : (
               <div className="flex items-center space-x-2">
                 <Link href="/auth/login">
-                  <Button 
+                  <Button
                     variant="ghost"
                     className="hover:bg-blue-50 hover:text-blue-600 transition-colors duration-200"
                   >
@@ -95,7 +98,11 @@ export default function Navbar() {
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="hover:bg-blue-50 hover:text-blue-600 transition-colors duration-200"
             >
-              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              {mobileMenuOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
             </Button>
           </div>
         </div>
@@ -106,7 +113,7 @@ export default function Navbar() {
         {mobileMenuOpen && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
+            animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
             className="md:hidden bg-white border-t border-gray-200"
@@ -114,9 +121,12 @@ export default function Navbar() {
             <div className="px-4 py-4 space-y-2">
               {user ? (
                 <>
-                  <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
-                    <Button 
-                      variant="ghost" 
+                  <Link
+                    href="/dashboard"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Button
+                      variant="ghost"
                       className="w-full justify-start hover:bg-blue-50 hover:text-blue-600"
                     >
                       Dashboard
@@ -124,7 +134,7 @@ export default function Navbar() {
                   </Link>
                   <div className="border-t border-gray-200 pt-2">
                     <div className="px-3 py-2 text-sm font-medium text-gray-900">
-                      {user.name}
+                      {user.full_name}
                     </div>
                     <Button
                       variant="ghost"
@@ -140,21 +150,27 @@ export default function Navbar() {
                   </div>
                 </>
               ) : (
-                <>
-                  <Link href="/auth/login" onClick={() => setMobileMenuOpen(false)}>
-                    <Button 
-                      variant="ghost" 
-                      className="w-full justify-start hover:bg-blue-50 hover:text-blue-600"
+                <div className="flex flex-col md:flex-row gap-2">
+                  <Link
+                    href="/auth/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-center hover:bg-blue-50 hover:text-blue-600"
                     >
                       Войти
                     </Button>
                   </Link>
-                  <Link href="/auth/register" onClick={() => setMobileMenuOpen(false)}>
+                  <Link
+                    href="/auth/register"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
                     <Button className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white">
                       Регистрация
                     </Button>
                   </Link>
-                </>
+                </div>
               )}
             </div>
           </motion.div>

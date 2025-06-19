@@ -1,97 +1,184 @@
-'use client';
+"use client";
 
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Plus, BarChart3, Edit, CheckCircle, XCircle } from 'lucide-react';
-import { useAuthStore } from '@/lib/auth-store';
-import { useModulesStore, initialModulesData } from '@/lib/modules-store';
-import Navbar from '@/components/navbar';
-import { toast } from 'sonner';
-
-// Required for static export with dynamic routes
-export async function generateStaticParams() {
-  return initialModulesData.map((module) => ({
-    id: module.id,
-  }));
-}
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import {
+  Plus,
+  BarChart3,
+  Edit,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+} from "lucide-react";
+import { useAuthStore } from "@/lib/auth-store";
+import { useModulesStore } from "@/lib/modules-store";
+import Navbar from "@/components/navbar";
+import { toast } from "sonner";
+import { Module } from "@/lib/api";
 
 export default function ModulePage({ params }: { params: { id: string } }) {
   const { user } = useAuthStore();
-  const { modules, updateModule } = useModulesStore();
+  const { fetchModule, activateModule, deactivateModule } = useModulesStore();
+  const [isActive, setIsActive] = useState<boolean>(false);
   const router = useRouter();
+  const [module, setModule] = useState<Module | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const loadModule = async () => {
+      if (!user) {
+        router.push("/auth/login");
+        return;
+      }
+
+      setIsLoading(true);
+      console.log("Fetching module with id:", params.id);
+
+      try {
+        const fetchedModule = await fetchModule(params.id);
+        console.log("Response from fetchModule:", fetchedModule);
+        if (fetchedModule) {
+          setModule(fetchedModule);
+          setIsActive(fetchedModule.isActive ?? false);
+        } else {
+          setModule(undefined);
+          toast.error("Модуль не найден");
+        }
+      } catch (error) {
+        console.error("Error fetching module:", error);
+        toast.error("Ошибка при загрузке модуля");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user) {
+      loadModule();
+    }
+  }, [user, params.id, fetchModule, router]);
 
   if (!user) {
-    router.push('/auth/login');
+    router.push("/auth/login");
     return null;
   }
 
-  const module = modules.find(m => m.id === params.id);
-
-  if (!module) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Модуль не найден</h1>
-            <Button onClick={() => router.push('/dashboard')}>
-              Вернуться к Dashboard
-            </Button>
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded mb-8 w-1/2"></div>
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-32 bg-gray-200 rounded"></div>
+              ))}
+            </div>
           </div>
         </main>
       </div>
     );
   }
 
-  const handleToggleActive = (checked: boolean) => {
-    if (checked && module.questions.length === 0) {
-      toast.error('Добавьте хотя бы один вопрос перед активацией модуля');
+  if (!module) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Card className="border-red-200 bg-red-50">
+            <CardContent className="flex items-center gap-4 p-6">
+              <AlertCircle className="h-8 w-8 text-red-600" />
+              <div>
+                <h3 className="text-lg font-semibold text-red-900">
+                  Модуль не найден
+                </h3>
+                <p className="text-red-700">
+                  Модуль с ID {params.id} не существует или недоступен.
+                </p>
+                <Button
+                  onClick={() => router.push("/dashboard")}
+                  className="mt-4 bg-red-600 hover:bg-red-700"
+                >
+                  Вернуться к Dashboard
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  const handleToggleActive = async (checked: boolean) => {
+    if (checked && (!module?.questions || module.questions.length === 0)) {
+      toast.error("Добавьте хотя бы один вопрос перед активацией модуля");
       return;
     }
-    
-    updateModule(module.id, { isActive: checked });
-    toast.success(checked ? 'Модуль активирован' : 'Модуль деактивирован');
+
+    const success = checked
+      ? await activateModule(module.id)
+      : await deactivateModule(module.id);
+
+    if (success) {
+      // setModule((prev) => (prev ? { ...prev, isActive: checked } : undefined));
+      toast.success(checked ? "Модуль активирован" : "Модуль деактивирован");
+      setIsActive(checked);
+    }
   };
 
   const getShareLink = () => {
-    return `${window.location.origin}/start-test/${module.id}`;
+    return `${window.location.origin}/start-test/${module.slug || module.id}`;
   };
 
   const copyShareLink = () => {
     navigator.clipboard.writeText(getShareLink());
-    toast.success('Ссылка скопирована в буфер обмена');
+    toast.success("Ссылка скопирована в буфер обмена");
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Module Header */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{module.title}</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                {module.title}
+              </h1>
               {module.description && (
                 <p className="text-gray-600 mb-4">{module.description}</p>
               )}
               <div className="flex items-center gap-4">
-                <Badge variant={module.isActive ? "default" : "secondary"}>
-                  {module.isActive ? 'Активен' : 'Неактивен'}
+                <Badge
+                  variant={
+                    isActive || module.isActive ? "default" : "secondary"
+                  }
+                >
+                  {isActive || module.isActive ? "Активен" : "Неактивен"}
                 </Badge>
                 <span className="text-sm text-gray-500">
-                  {module.questions.length} вопросов
+                  {module.questions ? module.questions.length : 0} вопросов
                 </span>
               </div>
             </div>
-            
+
             <div className="flex flex-col gap-4">
               <div className="flex items-center space-x-2">
                 <Switch
-                  checked={module.isActive}
+                  checked={isActive}
                   onCheckedChange={handleToggleActive}
                   id="module-active"
                 />
@@ -99,7 +186,7 @@ export default function ModulePage({ params }: { params: { id: string } }) {
                   Активировать модуль
                 </label>
               </div>
-              
+
               <div className="flex gap-2">
                 <Button
                   variant="outline"
@@ -109,7 +196,9 @@ export default function ModulePage({ params }: { params: { id: string } }) {
                   Результаты
                 </Button>
                 <Button
-                  onClick={() => router.push(`/module/${module.id}/add-question`)}
+                  onClick={() =>
+                    router.push(`/module/${module.id}/add-question`)
+                  }
                   className="bg-blue-600 hover:bg-blue-700"
                 >
                   <Plus className="mr-2 h-4 w-4" />
@@ -117,11 +206,12 @@ export default function ModulePage({ params }: { params: { id: string } }) {
                 </Button>
               </div>
 
-              {module.isActive && module.questions.length > 0 && (
-                <Button variant="outline" onClick={copyShareLink}>
-                  Копировать ссылку для прохождения
-                </Button>
-              )}
+              {(module.isActive || isActive) &&
+                (!module?.questions || module.questions.length > 0) && (
+                  <Button variant="outline" onClick={copyShareLink}>
+                    Копировать ссылку для прохождения
+                  </Button>
+                )}
             </div>
           </div>
         </div>
@@ -129,8 +219,8 @@ export default function ModulePage({ params }: { params: { id: string } }) {
         {/* Questions List */}
         <div className="space-y-4">
           <h2 className="text-xl font-semibold text-gray-900">Вопросы</h2>
-          
-          {module.questions.length === 0 ? (
+
+          {!module?.questions || module.questions.length === 0 ? (
             <Card>
               <CardContent className="text-center py-12">
                 <Plus className="mx-auto h-12 w-12 text-gray-400 mb-4" />
@@ -141,7 +231,9 @@ export default function ModulePage({ params }: { params: { id: string } }) {
                   Добавьте первый вопрос, чтобы начать создавать тест
                 </p>
                 <Button
-                  onClick={() => router.push(`/module/${module.id}/add-question`)}
+                  onClick={() =>
+                    router.push(`/module/${module.id}/add-question`)
+                  }
                   className="bg-blue-600 hover:bg-blue-700"
                 >
                   Добавить вопрос
@@ -150,48 +242,67 @@ export default function ModulePage({ params }: { params: { id: string } }) {
             </Card>
           ) : (
             <div className="space-y-4">
-              {module.questions.map((question, index) => (
-                <Card key={question.id}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="text-lg mb-2">
-                          {index + 1}. {question.text}
-                        </CardTitle>
-                        <Badge variant="outline">
-                          {question.type === 'single' ? 'Один ответ' : 'Несколько ответов'}
-                        </Badge>
-                      </div>
-                      <Button size="sm" variant="outline">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {question.options.map((option, optionIndex) => (
-                        <div 
-                          key={optionIndex}
-                          className={`flex items-center gap-2 p-2 rounded ${
-                            question.correctAnswers.includes(optionIndex)
-                              ? 'bg-green-50 border border-green-200'
-                              : 'bg-gray-50'
-                          }`}
-                        >
-                          {question.correctAnswers.includes(optionIndex) ? (
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                          ) : (
-                            <XCircle className="h-4 w-4 text-gray-400" />
-                          )}
-                          <span className={question.correctAnswers.includes(optionIndex) ? 'font-medium text-green-900' : ''}>
-                            {option}
-                          </span>
+              {module.questions &&
+                module.questions.map((question, index) => (
+                  <Card key={question.id}>
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <CardTitle className="text-lg mb-2">
+                            {index + 1}. {question.text}
+                          </CardTitle>
+                          <Badge variant="outline">
+                            {!question.is_multiple_choice
+                              ? "Один ответ"
+                              : "Несколько ответов"}
+                          </Badge>
                         </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                        <Button
+                          size="sm"
+                          onClick={() =>
+                            router.push(
+                              `/module/${module.id}/edit-question/${question.id}`
+                            )
+                          }
+                          variant="outline"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {question.options.map((option, optionIndex) => {
+                          return (
+                            <div
+                              key={optionIndex}
+                              className={`flex items-center gap-2 p-2 rounded ${
+                                option.is_correct
+                                  ? "bg-green-50 border border-green-200"
+                                  : "bg-gray-50"
+                              }`}
+                            >
+                              {option.is_correct ? (
+                                <CheckCircle className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <XCircle className="h-4 w-4 text-gray-400" />
+                              )}
+                              <span
+                                className={
+                                  option.is_correct
+                                    ? "font-medium text-green-900"
+                                    : ""
+                                }
+                              >
+                                {option.text}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
             </div>
           )}
         </div>
