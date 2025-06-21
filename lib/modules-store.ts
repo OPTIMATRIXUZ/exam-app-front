@@ -25,7 +25,7 @@ interface ModulesState {
   ) => Promise<boolean>;
   updateModule: (id: string, updates: Partial<Module>) => Promise<boolean>;
   deleteModule: (id: string) => Promise<boolean>;
-  activateModule: (id: string) => Promise<boolean>;
+  activateModule: (id: string) => Promise<string | null>;
   deactivateModule: (id: string) => Promise<boolean>;
 
   // Question actions
@@ -45,6 +45,11 @@ interface ModulesState {
     moduleId: string,
     resultId: string
   ) => Promise<TestResult | null>;
+
+  // Test preview action
+  fetchTestPreview: (slug: string) => Promise<Module | null>;
+
+  answerQuestion: (moduleSlug: string, answers: { questionId: string, selectedOptionIds: string[], isCorrect: boolean }) => Promise<boolean>;
 }
 
 export const useModulesStore = create<ModulesState>((set, get) => ({
@@ -185,7 +190,7 @@ export const useModulesStore = create<ModulesState>((set, get) => ({
 
       if (isApiError(response)) {
         handleApiError(response.error || "Failed to activate module");
-        return false;
+        return null;
       }
 
       const updatedModule = response.data!;
@@ -195,10 +200,10 @@ export const useModulesStore = create<ModulesState>((set, get) => ({
         ),
       }));
 
-      return true;
+      return response.data?.slug || null;
     } catch (error) {
       handleApiError("Network error while activating module");
-      return false;
+      return null;
     }
   },
 
@@ -329,6 +334,34 @@ export const useModulesStore = create<ModulesState>((set, get) => ({
       return null;
     }
   },
+
+  fetchTestPreview: async (slug: string) => {
+    try {
+      const response = await apiClient.getTestPreview(slug);
+      if (isApiError(response)) {
+        handleApiError(response.error || "Failed to fetch test preview");
+        return null;
+      }
+      return response.data!;
+    } catch (error) {
+      handleApiError("Network error while fetching test preview");
+      return null;
+    }
+  },
+
+  answerQuestion: async (moduleSlug, answers) => {
+    try {
+      const response = await apiClient.answerQuestion(moduleSlug, answers);
+      if (isApiError(response)) {
+        handleApiError(response.error || "Failed to answer question");
+        return false;
+      }
+      return true;
+    } catch (error) {
+      handleApiError("Network error while answering question");
+      return false;
+    }
+  }
 }));
 
 // Export initial modules data for fallback

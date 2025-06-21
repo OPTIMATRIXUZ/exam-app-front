@@ -79,7 +79,7 @@ export default function DashboardPage() {
     (acc, module) => acc + (module.results ? module.results.length : 0),
     0
   );
-  const activeModules = modules.filter((module) => module.isActive).length;
+  const activeModules = modules.filter((module) => module.is_active).length;
 
   if (error) {
     return (
@@ -269,14 +269,14 @@ export default function DashboardPage() {
                           {module.title}
                         </CardTitle>
                         <Badge
-                          variant={module.isActive ? "default" : "secondary"}
+                          variant={module.is_active ? "default" : "secondary"}
                           className={
-                            module.isActive
+                            module.is_active
                               ? "bg-gradient-to-r from-green-500 to-green-600 text-white"
                               : "bg-gray-100 text-gray-600"
                           }
                         >
-                          {module.isActive ? "Активен" : "Неактивен"}
+                          {module.is_active ? "Активен" : "Неактивен"}
                         </Badge>
                       </div>
                     </div>
@@ -302,7 +302,7 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="flex gap-2">
-                      {module.isActive && module.questions.length > 0 && (
+                      {module.is_active && (
                         <Button
                           size="sm"
                           variant="outline"

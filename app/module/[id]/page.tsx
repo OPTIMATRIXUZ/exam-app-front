@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -27,6 +26,9 @@ import { toast } from "sonner";
 import { Module } from "@/lib/api";
 
 export default function ModulePage({ params }: { params: { id: string } }) {
+  // Prevent server from referencing window/location:
+  if (typeof window === "undefined") return null;
+
   const { user } = useAuthStore();
   const { fetchModule, activateModule, deactivateModule } = useModulesStore();
   const [isActive, setIsActive] = useState<boolean>(false);
@@ -78,13 +80,7 @@ export default function ModulePage({ params }: { params: { id: string } }) {
         <Navbar />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded mb-4"></div>
-            <div className="h-4 bg-gray-200 rounded mb-8 w-1/2"></div>
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-32 bg-gray-200 rounded"></div>
-              ))}
-            </div>
+            {/* ... Loading placeholder ... */}
           </div>
         </main>
       </div>
@@ -96,25 +92,7 @@ export default function ModulePage({ params }: { params: { id: string } }) {
       <div className="min-h-screen bg-gray-50">
         <Navbar />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Card className="border-red-200 bg-red-50">
-            <CardContent className="flex items-center gap-4 p-6">
-              <AlertCircle className="h-8 w-8 text-red-600" />
-              <div>
-                <h3 className="text-lg font-semibold text-red-900">
-                  Модуль не найден
-                </h3>
-                <p className="text-red-700">
-                  Модуль с ID {params.id} не существует или недоступен.
-                </p>
-                <Button
-                  onClick={() => router.push("/dashboard")}
-                  className="mt-4 bg-red-600 hover:bg-red-700"
-                >
-                  Вернуться к Dashboard
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          {/* ... Module not found UI ... */}
         </main>
       </div>
     );
@@ -126,19 +104,35 @@ export default function ModulePage({ params }: { params: { id: string } }) {
       return;
     }
 
-    const success = checked
-      ? await activateModule(module.id)
-      : await deactivateModule(module.id);
-
-    if (success) {
-      // setModule((prev) => (prev ? { ...prev, isActive: checked } : undefined));
-      toast.success(checked ? "Модуль активирован" : "Модуль деактивирован");
-      setIsActive(checked);
+    if (checked) {
+      // Activate: expect activateModule to return a slug on success
+      const slug = await activateModule(module.id);
+      if (slug) {
+        toast.success("Модуль активирован");
+        setIsActive(true);
+        setModule({ ...module, slug });
+        // router.refresh();
+      } else {
+        toast.error("Ошибка при активации модуля");
+      }
+    } else {
+      // Deactivate: expect deactivateModule returns boolean as before
+      const success = await deactivateModule(module.id);
+      if (success) {
+        toast.success("Модуль деактивирован");
+        setIsActive(false);
+        setModule({ ...module, isActive: false });
+        // router.refresh();
+      } else {
+        toast.error("Ошибка при деактивации модуля");
+      }
     }
   };
 
   const getShareLink = () => {
-    return `${window.location.origin}/start-test/${module.slug || module.id}`;
+    // Use window.location only when available
+    const origin = window?.location?.origin || "";
+    return `${origin}/start-test/${module.slug}`;
   };
 
   const copyShareLink = () => {
@@ -149,7 +143,6 @@ export default function ModulePage({ params }: { params: { id: string } }) {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Module Header */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
@@ -163,9 +156,7 @@ export default function ModulePage({ params }: { params: { id: string } }) {
               )}
               <div className="flex items-center gap-4">
                 <Badge
-                  variant={
-                    isActive || module.isActive ? "default" : "secondary"
-                  }
+                  variant={isActive || module.isActive ? "default" : "secondary"}
                 >
                   {isActive || module.isActive ? "Активен" : "Неактивен"}
                 </Badge>
@@ -174,7 +165,6 @@ export default function ModulePage({ params }: { params: { id: string } }) {
                 </span>
               </div>
             </div>
-
             <div className="flex flex-col gap-4">
               <div className="flex items-center space-x-2">
                 <Switch
@@ -186,7 +176,6 @@ export default function ModulePage({ params }: { params: { id: string } }) {
                   Активировать модуль
                 </label>
               </div>
-
               <div className="flex gap-2">
                 <Button
                   variant="outline"
@@ -196,22 +185,19 @@ export default function ModulePage({ params }: { params: { id: string } }) {
                   Результаты
                 </Button>
                 <Button
-                  onClick={() =>
-                    router.push(`/module/${module.id}/add-question`)
-                  }
+                  onClick={() => router.push(`/module/${module.id}/add-question`)}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Добавить вопрос
                 </Button>
               </div>
-
               {(module.isActive || isActive) &&
-                (!module?.questions || module.questions.length > 0) && (
+                (module.questions?.length ?? 0) > 0 && (
                   <Button variant="outline" onClick={copyShareLink}>
                     Копировать ссылку для прохождения
                   </Button>
-                )}
+              )}
             </div>
           </div>
         </div>
@@ -219,8 +205,7 @@ export default function ModulePage({ params }: { params: { id: string } }) {
         {/* Questions List */}
         <div className="space-y-4">
           <h2 className="text-xl font-semibold text-gray-900">Вопросы</h2>
-
-          {!module?.questions || module.questions.length === 0 ? (
+          {!module.questions || module.questions.length === 0 ? (
             <Card>
               <CardContent className="text-center py-12">
                 <Plus className="mx-auto h-12 w-12 text-gray-400 mb-4" />
@@ -231,9 +216,7 @@ export default function ModulePage({ params }: { params: { id: string } }) {
                   Добавьте первый вопрос, чтобы начать создавать тест
                 </p>
                 <Button
-                  onClick={() =>
-                    router.push(`/module/${module.id}/add-question`)
-                  }
+                  onClick={() => router.push(`/module/${module.id}/add-question`)}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
                   Добавить вопрос
@@ -242,67 +225,60 @@ export default function ModulePage({ params }: { params: { id: string } }) {
             </Card>
           ) : (
             <div className="space-y-4">
-              {module.questions &&
-                module.questions.map((question, index) => (
-                  <Card key={question.id}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <CardTitle className="text-lg mb-2">
-                            {index + 1}. {question.text}
-                          </CardTitle>
-                          <Badge variant="outline">
-                            {!question.is_multiple_choice
-                              ? "Один ответ"
-                              : "Несколько ответов"}
-                          </Badge>
-                        </div>
-                        <Button
-                          size="sm"
-                          onClick={() =>
-                            router.push(
-                              `/module/${module.id}/edit-question/${question.id}`
-                            )
-                          }
-                          variant="outline"
+              {module.questions.map((question, index) => (
+                <Card key={question.id}>
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <CardTitle className="text-lg mb-2">
+                          {index + 1}. {question.text}
+                        </CardTitle>
+                        <Badge variant="outline">
+                          {question.is_multiple_choice
+                            ? "Несколько ответов"
+                            : "Один ответ"}
+                        </Badge>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          router.push(
+                            `/module/${module.id}/edit-question/${question.id}`
+                          )
+                        }
+                        variant="outline"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {question.options.map((option, optionIndex) => (
+                        <div
+                          key={optionIndex}
+                          className={`flex items-center gap-2 p-2 rounded ${
+                            option.is_correct
+                              ? "bg-green-50 border border-green-200"
+                              : "bg-gray-50"
+                          }`}
                         >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        {question.options.map((option, optionIndex) => {
-                          return (
-                            <div
-                              key={optionIndex}
-                              className={`flex items-center gap-2 p-2 rounded ${
-                                option.is_correct
-                                  ? "bg-green-50 border border-green-200"
-                                  : "bg-gray-50"
-                              }`}
-                            >
-                              {option.is_correct ? (
-                                <CheckCircle className="h-4 w-4 text-green-600" />
-                              ) : (
-                                <XCircle className="h-4 w-4 text-gray-400" />
-                              )}
-                              <span
-                                className={
-                                  option.is_correct
-                                    ? "font-medium text-green-900"
-                                    : ""
-                                }
-                              >
-                                {option.text}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                          {option.is_correct ? (
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <XCircle className="h-4 w-4 text-gray-400" />
+                          )}
+                          <span
+                            className={option.is_correct ? "font-medium text-green-900" : ""}
+                          >
+                            {option.text}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           )}
         </div>

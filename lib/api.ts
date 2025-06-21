@@ -44,6 +44,7 @@ export interface Module {
   questions: Question[];
   results: TestResult[];
   slug?: string;
+  is_active?: boolean; // For compatibility with old modules
 }
 
 export interface TestResult {
@@ -57,10 +58,9 @@ export interface TestResult {
 
 export interface TestAttempt {
   id: string;
-  moduleId: string;
-  studentName: string;
+  student: User;
   startedAt: string;
-  currentQuestion?: Question;
+  finishedAt?: string;
 }
 
 // API Client class
@@ -301,9 +301,15 @@ class ApiClient {
     return this.request(`/api/t/${slug}/result/`);
   }
 
+  async getTestPreview(slug: string): Promise<ApiResponse<Module>> {
+    return this.request(`/api/t/${slug}/`, {
+      method: "GET",
+    });
+  }
+
   // Alternative test taking endpoints (module_id based)
-  async startTestById(moduleId: string): Promise<ApiResponse<TestAttempt>> {
-    return this.request(`/api/test/${moduleId}/start/`, {
+  async startTestBySlug(moduleSlug: string): Promise<ApiResponse<TestAttempt>> {
+    return this.request(`/api/t/${moduleSlug}/start/`, {
       method: "POST",
     });
   }
@@ -313,6 +319,16 @@ class ApiClient {
     attemptId: string
   ): Promise<ApiResponse<Question>> {
     return this.request(`/api/test/${moduleId}/attempt/${attemptId}/next/`);
+  }
+
+  async answerQuestion(
+    moduleSlug: string,
+    answer: { questionId: string; selectedOptionIds: string[], isCorrect: boolean }
+  ): Promise<ApiResponse<TestAttempt>> {
+    return this.request(`/api/test/${moduleSlug}/answer/`, {
+      method: "POST",
+      body: JSON.stringify(answer),
+    });
   }
 
   async submitAnswerById(
