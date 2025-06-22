@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
@@ -13,7 +13,9 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Header } from '@/components/layout/header';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { apiClient } from '@/lib/api';
+import { Question } from '@/types';
 import { toast } from 'sonner';
 
 interface QuestionOption {
@@ -22,19 +24,41 @@ interface QuestionOption {
   is_correct: boolean;
 }
 
-export default function AddQuestionPage() {
+export default function EditQuestionPage() {
+  const [question, setQuestion] = useState<Question | null>(null);
   const [questionText, setQuestionText] = useState('');
-  const [questionType, setQuestionType] = useState<'multiple_choice' | 'multiple_select'>('multiple_choice');
-  const [options, setOptions] = useState<QuestionOption[]>([
-    { id: '1', text: '', is_correct: false },
-    { id: '2', text: '', is_correct: false },
-    { id: '3', text: '', is_correct: false },
-  ]);
+  const [questionType, setQuestionType] = useState<boolean>(false);
+  const [options, setOptions] = useState<QuestionOption[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   
   const params = useParams();
   const router = useRouter();
   const moduleId = parseInt(params.id as string);
+  const questionId = parseInt(params.questionId as string);
+
+  useEffect(() => {
+    fetchQuestion();
+  }, [moduleId, questionId]);
+
+  const fetchQuestion = async () => {
+    try {
+      const questionData = await apiClient.getQuestion(moduleId, questionId);
+      setQuestion(questionData);
+      setQuestionText(questionData.text);
+      setQuestionType(questionData.is_multiple_choice);
+      setOptions(questionData.options.map(option => ({
+        id: option.id.toString(),
+        text: option.text,
+        is_correct: option.is_correct,
+      })));
+    } catch (error) {
+      toast.error('Failed to load question');
+      router.push(`/module/${moduleId}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const addOption = () => {
     const newOption: QuestionOption = {
@@ -60,7 +84,7 @@ export default function AddQuestionPage() {
   };
 
   const toggleOptionCorrect = (optionId: string) => {
-    if (questionType === 'multiple_choice') {
+    if (questionType) {
       // For single choice, only one option can be correct
       setOptions(options.map(option => ({
         ...option,
@@ -94,7 +118,7 @@ export default function AddQuestionPage() {
       return false;
     }
 
-    if (questionType === 'multiple_choice' && correctOptions.length > 1) {
+    if (questionType && correctOptions.length > 1) {
       toast.error('Only one correct option allowed for single choice questions');
       return false;
     }
@@ -102,14 +126,14 @@ export default function AddQuestionPage() {
     return true;
   };
 
-  const handleSave = async (saveAndAddAnother = false) => {
+  const handleSave = async () => {
     if (!validateForm()) return;
 
     setIsSaving(true);
     try {
       const questionData = {
         text: questionText,
-        question_type: questionType,
+        is_multiple_choice: questionType,
         options: options
           .filter(option => option.text.trim())
           .map(option => ({
@@ -118,26 +142,26 @@ export default function AddQuestionPage() {
           })),
       };
 
-      await apiClient.addQuestion(moduleId, questionData);
-      toast.success('Question added successfully!');
-
-      if (saveAndAddAnother) {
-        // Reset form for next question
-        setQuestionText('');
-        setOptions([
-          { id: '1', text: '', is_correct: false },
-          { id: '2', text: '', is_correct: false },
-          { id: '3', text: '', is_correct: false },
-        ]);
-      } else {
-        router.push(`/module/${moduleId}`);
-      }
+      await apiClient.updateQuestion(moduleId, questionId, questionData);
+      toast.success('Question updated successfully!');
+      router.push(`/module/${moduleId}`);
     } catch (error) {
-      toast.error('Failed to add question');
+      toast.error('Failed to update question');
     } finally {
       setIsSaving(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen">
+        <Header />
+        <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+          <LoadingSpinner size="lg" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
@@ -155,10 +179,10 @@ export default function AddQuestionPage() {
           </Button>
           
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Add New Question
+            Edit Question
           </h1>
           <p className="text-gray-600">
-            Create a new question for your test module
+            Update the question details and options
           </p>
         </div>
 
@@ -166,7 +190,7 @@ export default function AddQuestionPage() {
           <CardHeader>
             <CardTitle>Question Details</CardTitle>
             <CardDescription>
-              Fill in the question details and options below
+              Update the question details and options below
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -184,9 +208,9 @@ export default function AddQuestionPage() {
             <div className="space-y-2">
               <Label htmlFor="questionType">Question Type</Label>
               <Select
-                value={questionType}
+                value={questionType ? 'multiple_choice' : 'multiple_select'}
                 onValueChange={(value: 'multiple_choice' | 'multiple_select') => {
-                  setQuestionType(value);
+                  setQuestionType(value === 'multiple_choice');
                   // Reset correct answers when changing type
                   setOptions(options.map(option => ({ ...option, is_correct: false })));
                 }}
@@ -214,7 +238,7 @@ export default function AddQuestionPage() {
                 {options.map((option, index) => (
                   <div key={option.id} className="flex items-center space-x-3 p-4 border rounded-lg">
                     <div className="flex items-center space-x-2">
-                      {questionType === 'multiple_choice' ? (
+                      {questionType ? (
                         <RadioGroup
                           value={options.find(opt => opt.is_correct)?.id || ''}
                           onValueChange={(value) => toggleOptionCorrect(value)}
@@ -254,7 +278,7 @@ export default function AddQuestionPage() {
               </div>
 
               <p className="text-sm text-gray-600">
-                {questionType === 'multiple_choice' 
+                {questionType
                   ? 'Select one correct answer'
                   : 'Select one or more correct answers'
                 }
@@ -269,17 +293,10 @@ export default function AddQuestionPage() {
                 Cancel
               </Button>
               <Button
-                variant="outline"
-                onClick={() => handleSave(true)}
+                onClick={handleSave}
                 disabled={isSaving}
               >
-                Save & Add Another
-              </Button>
-              <Button
-                onClick={() => handleSave(false)}
-                disabled={isSaving}
-              >
-                {isSaving ? 'Saving...' : 'Save Question'}
+                {isSaving ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
           </CardContent>

@@ -1,142 +1,166 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
+import { ArrowLeft, Eye, Calendar, User, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { ArrowLeft, Eye } from 'lucide-react';
-import { useAuthStore } from '@/lib/auth-store';
-import { useModulesStore } from '@/lib/modules-store';
-import Navbar from '@/components/navbar';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Header } from '@/components/layout/header';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { apiClient } from '@/lib/api';
+import { TestAttempt } from '@/types';
+import { toast } from 'sonner';
+import { format } from 'date-fns';
 
-export default function ResultsPage({ params }: { params: { id: string } }) {
-  const { user } = useAuthStore();
-  const { modules } = useModulesStore();
+export default function ModuleResultsPage() {
+  const [results, setResults] = useState<TestAttempt[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const params = useParams();
   const router = useRouter();
+  const moduleId = parseInt(params.id as string);
 
-  if (!user) {
-    router.push('/auth/login');
-    return null;
-  }
+  useEffect(() => {
+    fetchResults();
+  }, [moduleId]);
 
-  const module = modules.find(m => m.id === params.id);
+  const fetchResults = async () => {
+    try {
+      const data = await apiClient.getModuleResults(moduleId);
+      setResults(data);
+    } catch (error) {
+      toast.error('Failed to load results');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  if (!module) {
+  const getScoreColor = (percentage: number) => {
+    if (percentage >= 80) return 'text-green-600';
+    if (percentage >= 60) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  const getScoreBadge = (percentage: number) => {
+    if (percentage >= 80) return 'default';
+    if (percentage >= 60) return 'secondary';
+    return 'destructive';
+  };
+
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Модуль не найден</h1>
-            <Button onClick={() => router.push('/dashboard')}>
-              Вернуться к Dashboard
-            </Button>
-          </div>
-        </main>
+      <div className="min-h-screen">
+        <Header />
+        <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+          <LoadingSpinner size="lg" />
+        </div>
       </div>
     );
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('ru-RU');
-  };
-
-  const calculatePercentage = (score: number, total: number) => {
-    return Math.round((score / total) * 100);
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
+    <div className="min-h-screen">
+      <Header />
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6">
-          <Button 
-            variant="ghost" 
-            onClick={() => router.push(`/module/${params.id}`)}
+      <main className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <Button
+            variant="ghost"
+            onClick={() => router.push(`/module/${moduleId}`)}
             className="mb-4"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Назад к модулю
+            Back to Module
           </Button>
-          <h1 className="text-3xl font-bold text-gray-900">Результаты теста</h1>
-          <p className="text-gray-600 mt-2">Модуль: {module.title}</p>
+          
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Test Results
+          </h1>
+          <p className="text-gray-600">
+            View all test attempts and their results
+          </p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Список прохождений</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {module.results.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="max-w-md mx-auto">
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    Пока нет результатов
-                  </h3>
-                  <p className="text-gray-500">
-                    Результаты появятся здесь, когда студенты начнут проходить тест
-                  </p>
-                </div>
+        {results.length === 0 ? (
+          <Card className="text-center py-12">
+            <CardContent>
+              <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                <Target className="h-6 w-6 text-blue-600" />
               </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Имя студента</TableHead>
-                    <TableHead>Оценка</TableHead>
-                    <TableHead>Процент</TableHead>
-                    <TableHead>Дата прохождения</TableHead>
-                    <TableHead>Действия</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {module.results.map((result) => (
-                    <TableRow key={result.id}>
-                      <TableCell className="font-medium">
-                        {result.studentName}
-                      </TableCell>
-                      <TableCell>
-                        {result.score} / {result.totalQuestions}
-                      </TableCell>
-                      <TableCell>
-                        <span className={`font-medium ${
-                          calculatePercentage(result.score, result.totalQuestions) >= 70
-                            ? 'text-green-600'
-                            : calculatePercentage(result.score, result.totalQuestions) >= 50
-                            ? 'text-yellow-600'
-                            : 'text-red-600'
-                        }`}>
-                          {calculatePercentage(result.score, result.totalQuestions)}%
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {formatDate(result.completedAt)}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => router.push(`/module/${params.id}/results/${result.id}`)}
-                        >
-                          <Eye className="mr-2 h-4 w-4" />
-                          Посмотреть детально
-                        </Button>
-                      </TableCell>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                No results yet
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Test results will appear here once students start taking tests
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>All Test Attempts ({results.length})</CardTitle>
+              <CardDescription>
+                Complete list of all test attempts with scores and details
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Student</TableHead>
+                      <TableHead>Score</TableHead>
+                      <TableHead>Percentage</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {results.map((result) => (
+                      <TableRow key={result.id}>
+                        <TableCell>
+                          <div className="flex items-center">
+                            <User className="mr-2 h-4 w-4 text-gray-400" />
+                            <span className="font-medium">{result.student.full_name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className={`font-semibold ${getScoreColor(result.score / result.answers.length * 100)}`}>
+                            {result.score}/{result.answers.length}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getScoreBadge(result.score / result.answers.length * 100)}>
+                            {result.score}%
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center text-sm text-gray-600">
+                            <Calendar className="mr-2 h-4 w-4" />
+                            {format(new Date(result.started_at), 'MMM d, yyyy HH:mm')} — {format(new Date(result.finished_at), 'MMM d, yyyy HH:mm')}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.push(`/module/${moduleId}/results/${result.id}`)}
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            View Details
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </main>
     </div>
   );

@@ -1,278 +1,250 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import {
-  Plus,
-  BarChart3,
-  Edit,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-} from "lucide-react";
-import { useAuthStore } from "@/lib/auth-store";
-import { useModulesStore } from "@/lib/modules-store";
-import Navbar from "@/components/navbar";
-import { toast } from "sonner";
-import { Module } from "@/lib/api";
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
+import { Play, Plus, Edit, BarChart3, Power, PowerOff, ExternalLink } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Header } from '@/components/layout/header';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { apiClient } from '@/lib/api';
+import { Module, Question } from '@/types';
+import { toast } from 'sonner';
 
-export default function ModulePage({ params }: { params: { id: string } }) {
-  // Prevent server from referencing window/location:
-  if (typeof window === "undefined") return null;
-
-  const { user } = useAuthStore();
-  const { fetchModule, activateModule, deactivateModule } = useModulesStore();
-  const [isActive, setIsActive] = useState<boolean>(false);
+export default function ModulePage() {
+  const [module, setModule] = useState<Module | null>(null);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isToggling, setIsToggling] = useState(false);
+  
+  const params = useParams();
   const router = useRouter();
-  const [module, setModule] = useState<Module | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState(false);
+  const moduleId = parseInt(params.id as string);
 
   useEffect(() => {
-    const loadModule = async () => {
-      if (!user) {
-        router.push("/auth/login");
-        return;
-      }
-
-      setIsLoading(true);
-      console.log("Fetching module with id:", params.id);
-
-      try {
-        const fetchedModule = await fetchModule(params.id);
-        console.log("Response from fetchModule:", fetchedModule);
-        if (fetchedModule) {
-          setModule(fetchedModule);
-          setIsActive(fetchedModule.isActive ?? false);
-        } else {
-          setModule(undefined);
-          toast.error("Модуль не найден");
-        }
-      } catch (error) {
-        console.error("Error fetching module:", error);
-        toast.error("Ошибка при загрузке модуля");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (user) {
-      loadModule();
+    if (moduleId) {
+      fetchModuleData();
     }
-  }, [user, params.id, fetchModule, router]);
+  }, [moduleId]);
 
-  if (!user) {
-    router.push("/auth/login");
-    return null;
-  }
+  const fetchModuleData = async () => {
+    try {
+      const [moduleData, questionsData] = await Promise.all([
+        apiClient.getModule(moduleId),
+        apiClient.getQuestions(moduleId),
+      ]);
+      setModule(moduleData);
+      setQuestions(questionsData);
+    } catch (error) {
+      toast.error('Failed to load module data');
+      router.push('/dashboard');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleToggleModule = async () => {
+    if (!module) return;
+
+    setIsToggling(true);
+    try {
+      if (module.isActive) {
+        await apiClient.deactivateModule(moduleId);
+        setModule({ ...module, isActive: false });
+        toast.success('Module deactivated');
+      } else {
+        const response = await apiClient.activateModule(moduleId);
+        setModule({ ...module, isActive: true, slug: response.slug });
+        toast.success('Module activated');
+      }
+    } catch (error) {
+      toast.error('Failed to toggle module status');
+    } finally {
+      setIsToggling(false);
+    }
+  };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="animate-pulse">
-            {/* ... Loading placeholder ... */}
-          </div>
-        </main>
+      <div className="min-h-screen">
+        <Header />
+        <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+          <LoadingSpinner size="lg" />
+        </div>
       </div>
     );
   }
 
   if (!module) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* ... Module not found UI ... */}
-        </main>
+      <div className="min-h-screen">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Module not found</h1>
+            <Button onClick={() => router.push('/dashboard')}>
+              Back to Dashboard
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
 
-  const handleToggleActive = async (checked: boolean) => {
-    if (checked && (!module?.questions || module.questions.length === 0)) {
-      toast.error("Добавьте хотя бы один вопрос перед активацией модуля");
-      return;
-    }
-
-    if (checked) {
-      // Activate: expect activateModule to return a slug on success
-      const slug = await activateModule(module.id);
-      if (slug) {
-        toast.success("Модуль активирован");
-        setIsActive(true);
-        setModule({ ...module, slug });
-        // router.refresh();
-      } else {
-        toast.error("Ошибка при активации модуля");
-      }
-    } else {
-      // Deactivate: expect deactivateModule returns boolean as before
-      const success = await deactivateModule(module.id);
-      if (success) {
-        toast.success("Модуль деактивирован");
-        setIsActive(false);
-        setModule({ ...module, isActive: false });
-        // router.refresh();
-      } else {
-        toast.error("Ошибка при деактивации модуля");
-      }
-    }
-  };
-
-  const getShareLink = () => {
-    // Use window.location only when available
-    const origin = window?.location?.origin || "";
-    return `${origin}/start-test/${module.slug}`;
-  };
-
-  const copyShareLink = () => {
-    navigator.clipboard.writeText(getShareLink());
-    toast.success("Ссылка скопирована в буфер обмена");
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Module Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="min-h-screen">
+      <Header />
+      
+      <main className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
                 {module.title}
               </h1>
               {module.description && (
-                <p className="text-gray-600 mb-4">{module.description}</p>
-              )}
-              <div className="flex items-center gap-4">
-                <Badge
-                  variant={isActive || module.isActive ? "default" : "secondary"}
-                >
-                  {isActive || module.isActive ? "Активен" : "Неактивен"}
-                </Badge>
-                <span className="text-sm text-gray-500">
-                  {module.questions ? module.questions.length : 0} вопросов
-                </span>
-              </div>
-            </div>
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  checked={isActive}
-                  onCheckedChange={handleToggleActive}
-                  id="module-active"
-                />
-                <label htmlFor="module-active" className="text-sm font-medium">
-                  Активировать модуль
-                </label>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => router.push(`/module/${module.id}/results`)}
-                >
-                  <BarChart3 className="mr-2 h-4 w-4" />
-                  Результаты
-                </Button>
-                <Button
-                  onClick={() => router.push(`/module/${module.id}/add-question`)}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Добавить вопрос
-                </Button>
-              </div>
-              {(module.isActive || isActive) &&
-                (module.questions?.length ?? 0) > 0 && (
-                  <Button variant="outline" onClick={copyShareLink}>
-                    Копировать ссылку для прохождения
-                  </Button>
+                <p className="text-gray-600">{module.description}</p>
               )}
             </div>
+            <Badge variant={module.isActive ? 'default' : 'secondary'} className="text-sm">
+              {module.isActive ? 'Active' : 'Inactive'}
+            </Badge>
           </div>
+
+          <div className="flex flex-wrap gap-3">
+            <Button
+              onClick={() => router.push(`/module/${moduleId}/results`)}
+              variant="outline"
+            >
+              <BarChart3 className="mr-2 h-4 w-4" />
+              Results
+            </Button>
+            
+            <Button
+              onClick={() => router.push(`/module/${moduleId}/add-question`)}
+              variant="outline"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Question
+            </Button>
+            
+            <Button
+              onClick={handleToggleModule}
+              disabled={isToggling}
+              variant={module.isActive ? 'destructive' : 'default'}
+            >
+              {module.isActive ? (
+                <>
+                  <PowerOff className="mr-2 h-4 w-4" />
+                  Deactivate
+                </>
+              ) : (
+                <>
+                  <Power className="mr-2 h-4 w-4" />
+                  Activate
+                </>
+              )}
+            </Button>
+
+            {module.isActive && module.slug && (
+              <Button
+                onClick={() => router.push(`/start-test/${module.slug}`)}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Preview Test
+              </Button>
+            )}
+          </div>
+
+          {module.isActive && module.slug && (
+            <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-800">
+                <strong>Test URL:</strong>{' '}
+                <code className="bg-green-100 px-2 py-1 rounded">
+                  {window.location.origin}/start-test/{module.slug}
+                </code>
+              </p>
+            </div>
+          )}
         </div>
 
-        {/* Questions List */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-gray-900">Вопросы</h2>
-          {!module.questions || module.questions.length === 0 ? (
-            <Card>
-              <CardContent className="text-center py-12">
-                <Plus className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Пока нет вопросов
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-semibold text-gray-900">
+              Questions ({questions.length})
+            </h2>
+          </div>
+
+          {questions.length === 0 ? (
+            <Card className="text-center py-12">
+              <CardContent>
+                <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                  <Plus className="h-6 w-6 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  No questions yet
                 </h3>
-                <p className="text-gray-500 mb-4">
-                  Добавьте первый вопрос, чтобы начать создавать тест
+                <p className="text-gray-600 mb-4">
+                  Add your first question to start building this test
                 </p>
-                <Button
-                  onClick={() => router.push(`/module/${module.id}/add-question`)}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  Добавить вопрос
+                <Button onClick={() => router.push(`/module/${moduleId}/add-question`)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add First Question
                 </Button>
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-4">
-              {module.questions.map((question, index) => (
-                <Card key={question.id}>
+              {questions.map((question, index) => (
+                <Card key={question.id} className="question-card">
                   <CardHeader>
-                    <div className="flex items-start justify-between">
+                    <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <CardTitle className="text-lg mb-2">
-                          {index + 1}. {question.text}
+                        <CardTitle className="text-lg">
+                          Question {index + 1}
                         </CardTitle>
-                        <Badge variant="outline">
-                          {question.is_multiple_choice
-                            ? "Несколько ответов"
-                            : "Один ответ"}
-                        </Badge>
+                        <CardDescription className="mt-2">
+                          {question.text}
+                        </CardDescription>
                       </div>
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          router.push(
-                            `/module/${module.id}/edit-question/${question.id}`
-                          )
-                        }
-                        variant="outline"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center space-x-2">
+                        <Badge variant="outline">
+                          {question.is_multiple_choice ? 'Multiple Choice' : 'Single Choice'}
+                        </Badge>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => router.push(`/module/${moduleId}/edit-question/${question.id}`)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
                       {question.options.map((option, optionIndex) => (
                         <div
-                          key={optionIndex}
-                          className={`flex items-center gap-2 p-2 rounded ${
+                          key={option.id}
+                          className={`flex items-center p-3 rounded-lg border ${
                             option.is_correct
-                              ? "bg-green-50 border border-green-200"
-                              : "bg-gray-50"
+                              ? 'bg-green-50 border-green-200'
+                              : 'bg-gray-50 border-gray-200'
                           }`}
                         >
-                          {option.is_correct ? (
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                          ) : (
-                            <XCircle className="h-4 w-4 text-gray-400" />
-                          )}
-                          <span
-                            className={option.is_correct ? "font-medium text-green-900" : ""}
-                          >
-                            {option.text}
+                          <span className="text-sm font-medium mr-3">
+                            {String.fromCharCode(65 + optionIndex)}.
                           </span>
+                          <span className="flex-1">{option.text}</span>
+                          {option.is_correct && (
+                            <Badge variant="default" className="ml-2">
+                              Correct
+                            </Badge>
+                          )}
                         </div>
                       ))}
                     </div>

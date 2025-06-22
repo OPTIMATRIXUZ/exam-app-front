@@ -1,291 +1,299 @@
 'use client';
 
 import Link from 'next/link';
+import { ArrowRight, CheckCircle, Users, BarChart3, Shield, Zap, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookOpen, Users, Trophy, Zap, ArrowRight, CheckCircle } from 'lucide-react';
-import { useAuthStore } from '@/lib/auth-store';
-import { motion } from 'framer-motion';
-import Navbar from '@/components/navbar';
+import { Header } from '@/components/layout/header';
 
-const features = [
-  {
-    icon: BookOpen,
-    title: 'Создание тестов',
-    description: 'Легко создавайте тесты с вопросами множественного выбора и настраивайте их под свои нужды',
-    gradient: 'from-blue-500 to-cyan-500'
-  },
-  {
-    icon: Users,
-    title: 'Совместное использование',
-    description: 'Делитесь тестами по ссылке и получайте результаты от ваших студентов в реальном времени',
-    gradient: 'from-purple-500 to-pink-500'
-  },
-  {
-    icon: Trophy,
-    title: 'Аналитика результатов',
-    description: 'Просматривайте детальную статистику прохождения тестов и анализируйте результаты',
-    gradient: 'from-amber-500 to-orange-500'
-  },
-  {
-    icon: Zap,
-    title: 'Быстро и просто',
-    description: 'Интуитивный интерфейс позволяет создать и запустить тест всего за несколько минут',
-    gradient: 'from-green-500 to-emerald-500'
-  }
-];
-
-const benefits = [
-  'Неограниченное количество тестов',
-  'Детальная аналитика результатов',
-  'Мобильная адаптация',
-  'Безопасное хранение данных',
-  'Техническая поддержка 24/7',
-  'Экспорт результатов'
-];
-
-export default function Home() {
-  const { user } = useAuthStore();
-
+export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <Navbar />
+    <div className="min-h-screen">
+      <Header />
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Hero Section */}
-        <section className="py-20 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="max-w-4xl mx-auto"
-          >
-            <h1 className="text-5xl md:text-7xl font-bold mb-6">
-              <span className="bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent">
-                Создавайте и проходите тесты
-              </span>
-              <br />
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                легко
-              </span>
+      {/* Hero Section */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-cyan-50 py-20">
+        <div className="container mx-auto px-4">
+          <div className="text-center max-w-4xl mx-auto">
+            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
+              Advanced Testing Platform for
+              <span className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent"> Modern Education</span>
             </h1>
-            
-            <p className="text-xl md:text-2xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed">
-              Examinator - современная платформа для создания интерактивных тестов и проверки знаний. 
-              Идеально подходит для учителей, студентов и всех, кто хочет проверить свои знания.
+            <p className="text-xl text-gray-600 mb-8 leading-relaxed">
+              Create, manage, and analyze tests with powerful features. 
+              Examinator provides everything you need for comprehensive assessment and learning analytics.
             </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-              {user ? (
-                <Link href="/dashboard">
-                  <Button 
-                    size="lg" 
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300 px-8 py-4 text-lg"
-                  >
-                    Перейти в Dashboard
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </Link>
-              ) : (
-                <>
-                  <Link href="/auth/register">
-                    <Button 
-                      size="lg" 
-                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300 px-8 py-4 text-lg"
-                    >
-                      Начать бесплатно
-                      <ArrowRight className="ml-2 h-5 w-5" />
-                    </Button>
-                  </Link>
-                  <Link href="/auth/login">
-                    <Button 
-                      size="lg" 
-                      variant="outline"
-                      className="border-2 border-gray-300 hover:border-blue-500 hover:text-blue-600 transition-all duration-300 px-8 py-4 text-lg"
-                    >
-                      Войти в аккаунт
-                    </Button>
-                  </Link>
-                </>
-              )}
-            </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-2xl mx-auto">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                className="text-center"
-              >
-                <div className="text-3xl font-bold text-blue-600 mb-2">1000+</div>
-                <div className="text-gray-600">Созданных тестов</div>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.3 }}
-                className="text-center"
-              >
-                <div className="text-3xl font-bold text-purple-600 mb-2">5000+</div>
-                <div className="text-gray-600">Активных пользователей</div>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.4 }}
-                className="text-center"
-              >
-                <div className="text-3xl font-bold text-green-600 mb-2">99.9%</div>
-                <div className="text-gray-600">Время работы</div>
-              </motion.div>
-            </div>
-          </motion.div>
-        </section>
-
-        {/* Features Section */}
-        <section className="py-20">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-              Возможности платформы
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Все необходимые инструменты для создания и проведения тестов в одном месте
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {features.map((feature, index) => (
-              <motion.div
-                key={feature.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-              >
-                <Card className="text-center hover-lift border-0 shadow-lg hover:shadow-2xl transition-all duration-300 bg-white/80 backdrop-blur-sm">
-                  <CardHeader>
-                    <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br ${feature.gradient} p-4 shadow-lg`}>
-                      <feature.icon className="h-8 w-8 text-white" />
-                    </div>
-                    <CardTitle className="text-xl font-bold text-gray-900">{feature.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="text-gray-600 leading-relaxed">
-                      {feature.description}
-                    </CardDescription>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </section>
-
-        {/* Benefits Section */}
-        <section className="py-20">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
-            >
-              <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                Почему выбирают Examinator?
-              </h2>
-              <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-                Мы предоставляем все необходимые инструменты для эффективного обучения и тестирования
-              </p>
-              <div className="space-y-4">
-                {benefits.map((benefit, index) => (
-                  <motion.div
-                    key={benefit}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.6, delay: index * 0.1 }}
-                    className="flex items-center space-x-3"
-                  >
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center flex-shrink-0">
-                      <CheckCircle className="h-4 w-4 text-white" />
-                    </div>
-                    <span className="text-gray-700 font-medium">{benefit}</span>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-            
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="relative"
-            >
-              <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl p-8 text-white shadow-2xl">
-                <div className="space-y-6">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                      <BookOpen className="h-6 w-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">Создание тестов</h3>
-                      <p className="text-white/80 text-sm">За 5 минут</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                      <Users className="h-6 w-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">Совместная работа</h3>
-                      <p className="text-white/80 text-sm">Неограниченно студентов</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                      <Trophy className="h-6 w-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">Аналитика</h3>
-                      <p className="text-white/80 text-sm">Детальные отчеты</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="py-20">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 rounded-3xl text-white text-center py-20 px-8 shadow-2xl"
-          >
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">
-              Готовы начать создавать тесты?
-            </h2>
-            <p className="text-xl text-blue-100 mb-10 max-w-2xl mx-auto leading-relaxed">
-              Зарегистрируйтесь сейчас и создайте свой первый тест за считанные минуты
-            </p>
-            {!user && (
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/auth/register">
-                <Button 
-                  size="lg" 
-                  className="bg-white text-blue-600 hover:bg-gray-100 shadow-xl hover:shadow-2xl transition-all duration-300 px-8 py-4 text-lg font-semibold"
-                >
-                  Зарегистрироваться бесплатно
+                <Button size="lg" className="text-lg px-8 py-4">
+                  Get Started Free
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
-            )}
-          </motion.div>
-        </section>
-      </main>
+              <Link href="/auth/login">
+                <Button variant="outline" size="lg" className="text-lg px-8 py-4">
+                  Sign In
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Everything You Need for Testing
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Powerful features designed to make test creation, management, and analysis effortless
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <CardHeader>
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                  <Zap className="h-6 w-6 text-blue-600" />
+                </div>
+                <CardTitle className="text-xl">Quick Test Creation</CardTitle>
+                <CardDescription>
+                  Create comprehensive tests in minutes with our intuitive interface
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    Multiple choice & select questions
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    Dynamic option management
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    Question randomization
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <CardHeader>
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+                  <Users className="h-6 w-6 text-green-600" />
+                </div>
+                <CardTitle className="text-xl">Student Management</CardTitle>
+                <CardDescription>
+                  Seamless test-taking experience for students with real-time progress
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    Secure test sessions
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    Progress tracking
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    Instant results
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <CardHeader>
+                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+                  <BarChart3 className="h-6 w-6 text-purple-600" />
+                </div>
+                <CardTitle className="text-xl">Advanced Analytics</CardTitle>
+                <CardDescription>
+                  Comprehensive insights into test performance and learning outcomes
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    Detailed result analysis
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    Performance metrics
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    Export capabilities
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <CardHeader>
+                <div className="w-12 h-12 bg-cyan-100 rounded-lg flex items-center justify-center mb-4">
+                  <Shield className="h-6 w-6 text-cyan-600" />
+                </div>
+                <CardTitle className="text-xl">Secure & Reliable</CardTitle>
+                <CardDescription>
+                  Enterprise-grade security with reliable performance
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    Data encryption
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    Secure authentication
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    99.9% uptime
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <CardHeader>
+                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
+                  <Globe className="h-6 w-6 text-orange-600" />
+                </div>
+                <CardTitle className="text-xl">Accessible Anywhere</CardTitle>
+                <CardDescription>
+                  Cloud-based platform accessible from any device, anywhere
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    Responsive design
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    Cross-platform support
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    Offline capabilities
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <CardHeader>
+                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4">
+                  <ArrowRight className="h-6 w-6 text-red-600" />
+                </div>
+                <CardTitle className="text-xl">Easy Integration</CardTitle>
+                <CardDescription>
+                  Seamlessly integrate with existing learning management systems
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    API access
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    LMS compatibility
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                    Custom branding
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 bg-gradient-to-r from-blue-600 to-cyan-600">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-4xl font-bold text-white mb-4">
+            Ready to Transform Your Testing?
+          </h2>
+          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+            Join thousands of educators who trust Examinator for their assessment needs
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/auth/register">
+              <Button size="lg" variant="secondary" className="text-lg px-8 py-4">
+                Start Free Trial
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+            <Link href="/auth/login">
+              <Button size="lg" variant="outline" className="text-lg px-8 py-4 border-white text-white hover:bg-white hover:text-blue-600">
+                Sign In Now
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div>
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 p-2">
+                  <CheckCircle className="h-6 w-6 text-white" />
+                </div>
+                <span className="text-xl font-bold">Examinator</span>
+              </div>
+              <p className="text-gray-400">
+                Advanced testing platform for modern education and assessment.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-4">Product</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li><Link href="#" className="hover:text-white">Features</Link></li>
+                <li><Link href="#" className="hover:text-white">Pricing</Link></li>
+                <li><Link href="#" className="hover:text-white">API</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-4">Support</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li><Link href="#" className="hover:text-white">Documentation</Link></li>
+                <li><Link href="#" className="hover:text-white">Help Center</Link></li>
+                <li><Link href="#" className="hover:text-white">Contact</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-4">Company</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li><Link href="#" className="hover:text-white">About</Link></li>
+                <li><Link href="#" className="hover:text-white">Blog</Link></li>
+                <li><Link href="#" className="hover:text-white">Careers</Link></li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+            <p>&copy; 2024 Examinator. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -1,13 +1,13 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import { Toaster } from 'sonner';
+import { Toaster } from '@/components/ui/sonner';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Examinator - Создавайте и проходите тесты легко',
-  description: 'Современная платформа для создания интерактивных тестов и проверки знаний',
+  title: 'Examinator - Advanced Testing Platform',
+  description: 'Create, manage, and take tests with advanced analytics',
 };
 
 export default function RootLayout({
@@ -16,10 +16,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ru">
+    <html lang="en">
       <body className={inter.className}>
-        {children}
-        <Toaster position="top-right" />
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50">
+          {children}
+        </div>
+        <Toaster />
       </body>
     </html>
   );

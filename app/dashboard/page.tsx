@@ -1,373 +1,267 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Plus,
-  Calendar,
-  Users,
-  Play,
-  Settings,
-  TrendingUp,
-  Clock,
-  AlertCircle,
-} from "lucide-react";
-import { useAuthStore } from "@/lib/auth-store";
-import { useModulesStore } from "@/lib/modules-store";
-import { motion } from "framer-motion";
-import Navbar from "@/components/navbar";
-import CreateModuleDialog from "@/components/create-module-dialog";
-import { toast } from "sonner";
+import { use, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Plus, Play, Settings, Calendar, CheckCircle, XCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Header } from '@/components/layout/header';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import { apiClient } from '@/lib/api';
+import { Module } from '@/types';
+import { toast } from 'sonner';
+import { format } from 'date-fns';
 
 export default function DashboardPage() {
-  const router = useRouter();
-  const { user, refreshTokens } = useAuthStore();
-  const { modules, isLoading, error, fetchModules } = useModulesStore();
+  const [isCreating, setIsCreating] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [newModuleName, setNewModuleName] = useState('');
+  const [newModuleDescription, setNewModuleDescription] = useState('');
+  
+  const router = useRouter();
+  const [hydrated, setHydrated] = useState(false);
 
-  // 1) Эффект для редиректа, если нет user
   useEffect(() => {
-    if (!user) {
-      toast.error(
-        "Пожалуйста, войдите в систему для доступа к панели управления"
-      );
-      router.push("/auth/login");
+    setHydrated(true);
+  }, []);
+
+  const { user, isAuthenticated, loadUser } = useAuthStore();
+  const [modules, setModules]     = useState<Module[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // 2) don’t run any auth logic until we know we’re hydrated
+    if (!hydrated) return;
+
+    // 3) once hydrated, if NOT logged in → redirect
+    if (!isAuthenticated) {
+      toast.error('You must be logged in to access the dashboard');
+      router.push('/auth/login');
+      return;
     }
-  }, [user, router]);
 
-  // 2) Эффект для загрузки модулей, когда user подтягивается
-  useEffect(() => {
-    if (user) {
-      fetchModules();
+    // 4) if we ARE authenticated, fetch user and modules
+    loadUser();
+    fetchModules();
+  }, [hydrated, isAuthenticated, router, loadUser]);
+
+  const fetchModules = async () => {
+    try {
+      const data = await apiClient.getModules();
+      setModules(data);
+    } catch (err) {
+      toast.error('Failed to load modules');
+    } finally {
+      setIsLoading(false);
     }
-  }, [user, fetchModules]);
+  };
 
-  // 3) Эффект для обновления токенов
-  useEffect(() => {
-    const interval = setInterval(() => {
-      refreshTokens();
-    }, 15 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [refreshTokens]);
-
-  // Пока идёт редирект — ничего не показываем
-  if (!user) {
-    return null; // или <LoadingSpinner />
+  if (!hydrated || isLoading) {
+    return (
+      <div className="min-h-screen">
+        <Header />
+        <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+          <LoadingSpinner size="lg" />
+        </div>
+      </div>
+    );
   }
 
-  const handleStartTest = (moduleId: string) => {
-    router.push(`/start-test/${moduleId}`);
+  const handleCreateModule = async () => {
+    if (!newModuleName.trim()) {
+      toast.error('Module name is required');
+      return;
+    }
+
+    setIsCreating(true);
+    try {
+      const newModule = await apiClient.createModule(newModuleName, newModuleDescription);
+      setModules([...modules, newModule]);
+      setNewModuleName('');
+      setNewModuleDescription('');
+      setShowCreateDialog(false);
+      toast.success('Module created successfully!');
+    } catch (error) {
+      toast.error('Failed to create module');
+    } finally {
+      setIsCreating(false);
+    }
   };
 
-  const handleManageModule = (moduleId: string) => {
-    router.push(`/module/${moduleId}`);
+  const handleStartTest = (module: Module) => {
+    if (module.is_active && module.slug) {
+      router.push(`/start-test/${module.slug}`);
+    } else {
+      toast.error('Module is not active');
+    }
   };
-  const totalQuestions = modules.reduce(
-    (acc, module) => acc + (module.questions ? module.questions.length : 0),
-    0
-  );
-  const totalResults = modules.reduce(
-    (acc, module) => acc + (module.results ? module.results.length : 0),
-    0
-  );
-  const activeModules = modules.filter((module) => module.is_active).length;
 
-  if (error) {
+
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-        <Navbar />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Card className="border-red-200 bg-red-50">
-            <CardContent className="flex items-center gap-4 p-6">
-              <AlertCircle className="h-8 w-8 text-red-600" />
-              <div>
-                <h3 className="text-lg font-semibold text-red-900">
-                  Ошибка подключения к серверу
-                </h3>
-                <p className="text-red-700">
-                  Не удается подключиться к серверу на http://localhost:8000/
-                </p>
-                <p className="text-sm text-red-600 mt-2">
-                  Убедитесь, что сервер запущен и доступен.
-                </p>
-                <p className="text-sm text-red-600 mt-2">
-                  Ошибка в сервере: {error}
-                </p>
-                <Button
-                  onClick={() => fetchModules()}
-                  className="mt-4 bg-red-600 hover:bg-red-700"
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Повторное подключение..." : "Попробовать снова"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </main>
+      <div className="min-h-screen">
+        <Header />
+        <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+          <LoadingSpinner size="lg" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-      <Navbar />
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="mb-8"
-        >
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-2">
-            Добро пожаловать, {user.full_name}!
+    <div className="min-h-screen">
+      <Header />
+      
+      <main className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Welcome back, {user?.user.full_name}!
           </h1>
-          <p className="text-gray-600 text-lg">
-            Управляйте своими тестами и отслеживайте результаты студентов
+          <p className="text-gray-600">
+            Manage your modules and track test results
           </p>
-        </motion.div>
+        </div>
 
-        {/* Stats Cards */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"
-        >
-          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 text-sm font-medium">
-                    Всего модулей
-                  </p>
-                  <p className="text-3xl font-bold">
-                    {isLoading ? "..." : modules ? modules.length : 0}
-                  </p>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-semibold text-gray-900">Your Modules</h2>
+          
+          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Module
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create New Module</DialogTitle>
+                <DialogDescription>
+                  Create a new test module to organize your questions
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="moduleName">Module Name</Label>
+                  <Input
+                    id="moduleName"
+                    placeholder="Enter module name"
+                    value={newModuleName}
+                    onChange={(e) => setNewModuleName(e.target.value)}
+                  />
                 </div>
-                <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-                  <Settings className="h-6 w-6 text-white" />
+                <div className="space-y-2">
+                  <Label htmlFor="moduleDescription">Description (Optional)</Label>
+                  <Textarea
+                    id="moduleDescription"
+                    placeholder="Enter module description"
+                    value={newModuleDescription}
+                    onChange={(e) => setNewModuleDescription(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowCreateDialog(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={handleCreateModule} disabled={isCreating}>
+                    {isCreating ? 'Creating...' : 'Create Module'}
+                  </Button>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </DialogContent>
+          </Dialog>
+        </div>
 
-          <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-green-100 text-sm font-medium">
-                    Активных модулей
-                  </p>
-                  <p className="text-3xl font-bold">
-                    {isLoading ? "..." : activeModules ? activeModules : 0}
-                  </p>
-                </div>
-                <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-                  <Play className="h-6 w-6 text-white" />
-                </div>
+        {modules.length === 0 ? (
+          <Card className="text-center py-12">
+            <CardContent>
+              <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                <Plus className="h-6 w-6 text-blue-600" />
               </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                No modules yet
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Create your first module to start building tests
+              </p>
+              <Button onClick={() => setShowCreateDialog(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Your First Module
+              </Button>
             </CardContent>
           </Card>
-
-          <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-purple-100 text-sm font-medium">
-                    Всего вопросов
-                  </p>
-                  <p className="text-3xl font-bold">
-                    {isLoading ? "..." : totalQuestions}
-                  </p>
-                </div>
-                <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="h-6 w-6 text-white" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0 shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-orange-100 text-sm font-medium">
-                    Прохождений
-                  </p>
-                  <p className="text-3xl font-bold">
-                    {isLoading ? "..." : totalResults}
-                  </p>
-                </div>
-                <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-                  <Users className="h-6 w-6 text-white" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="mb-8"
-        >
-          <Button
-            onClick={() => setShowCreateDialog(true)}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-            size="lg"
-            disabled={isLoading}
-          >
-            <Plus className="mr-2 h-5 w-5" />
-            Создать новый модуль
-          </Button>
-        </motion.div>
-
-        {isLoading ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="animate-pulse">
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {modules.map((module) => (
+              <Card key={module.id} className="hover:shadow-lg transition-shadow duration-200">
                 <CardHeader>
-                  <div className="h-6 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-4 bg-gray-200 rounded w-20"></div>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-lg">{module.title}</CardTitle>
+                      {module.description && (
+                        <CardDescription className="mt-1">
+                          {module.description}
+                        </CardDescription>
+                      )}
+                    </div>
+                    <Badge variant={module.is_active ? 'default' : 'secondary'}>
+                      {module.is_active ? (
+                        <CheckCircle className="mr-1 h-3 w-3" />
+                      ) : (
+                        <XCircle className="mr-1 h-3 w-3" />
+                      )}
+                      {module.is_active ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-4 bg-gray-200 rounded mb-4"></div>
-                  <div className="h-4 bg-gray-200 rounded mb-4 w-3/4"></div>
-                  <div className="flex gap-2">
-                    <div className="h-8 bg-gray-200 rounded w-20"></div>
-                    <div className="h-8 bg-gray-200 rounded w-24"></div>
+                  <div className="space-y-3">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Calendar className="mr-2 h-4 w-4" />
+                      Created {format(new Date(module.created_at), 'MMM d, yyyy')}
+                    </div>
+                    
+                    <div className="text-sm text-gray-600">
+                      Questions: {module.questions_count || 0}
+                    </div>
+                    
+                    <div className="flex space-x-2">
+                      {module.is_active && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleStartTest(module)}
+                          className="flex-1"
+                        >
+                          <Play className="mr-2 h-4 w-4" />
+                          Start Test
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => router.push(`/module/${module.id}`)}
+                        className={module.is_active ? '' : 'flex-1'}
+                      >
+                        <Settings className="mr-2 h-4 w-4" />
+                        Manage
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             ))}
           </div>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {modules.map((module, index) => (
-              <motion.div
-                key={module.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.1 * index }}
-              >
-                <Card className="hover-lift border-0 shadow-lg hover:shadow-2xl transition-all duration-300 bg-white/80 backdrop-blur-sm">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="text-xl mb-3 text-gray-900">
-                          {module.title}
-                        </CardTitle>
-                        <Badge
-                          variant={module.is_active ? "default" : "secondary"}
-                          className={
-                            module.is_active
-                              ? "bg-gradient-to-r from-green-500 to-green-600 text-white"
-                              : "bg-gray-100 text-gray-600"
-                          }
-                        >
-                          {module.is_active ? "Активен" : "Неактивен"}
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="mb-6 text-gray-600 leading-relaxed">
-                      {module.description || "Без описания"}
-                    </CardDescription>
-
-                    <div className="space-y-3 mb-6">
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Calendar className="mr-2 h-4 w-4" />
-                        Создан:{" "}
-                        {new Date(Date.parse(module.created_at)).toLocaleDateString("ru-RU")}
-                      </div>
-
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Clock className="mr-2 h-4 w-4" />
-                        {module.questions ? module.questions.length : 0}{" "}
-                        вопросов • {module.results ? module.results.length : 0}{" "}
-                        прохождений
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      {module.is_active && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleStartTest(module.id)}
-                          className="hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-colors duration-200"
-                        >
-                          <Play className="mr-1 h-3 w-3" />
-                          Пройти тест
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        onClick={() => handleManageModule(module.id)}
-                        className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white"
-                      >
-                        <Settings className="mr-1 h-3 w-3" />
-                        Управление
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-
-            {modules.length === 0 && !isLoading && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.3 }}
-                className="col-span-full"
-              >
-                <Card className="text-center py-16 border-2 border-dashed border-gray-300 bg-white/50 backdrop-blur-sm">
-                  <CardContent>
-                    <div className="max-w-md mx-auto">
-                      <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center">
-                        <Plus className="h-10 w-10 text-white" />
-                      </div>
-                      <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                        Создайте свой первый модуль
-                      </h3>
-                      <p className="text-gray-600 mb-6 leading-relaxed">
-                        Начните создавать тесты для ваших студентов и
-                        отслеживайте их прогресс
-                      </p>
-                      <Button
-                        onClick={() => setShowCreateDialog(true)}
-                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                        size="lg"
-                      >
-                        <Plus className="mr-2 h-5 w-5" />
-                        Создать модуль
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-          </div>
         )}
       </main>
-
-      <CreateModuleDialog
-        open={showCreateDialog}
-        onOpenChange={setShowCreateDialog}
-      />
     </div>
   );
 }
