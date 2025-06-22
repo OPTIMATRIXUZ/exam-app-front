@@ -1,0 +1,142 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 220 14% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 14% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 14% 11%;
+    --primary: 200 98% 39%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 210 40% 98%;
+    --secondary-foreground: 220 14% 11%;
+    --muted: 210 40% 98%;
+    --muted-foreground: 220 9% 46%;
+    --accent: 195 100% 50%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 200 98% 39%;
+    --chart-1: 200 98% 39%;
+    --chart-2: 195 100% 50%;
+    --chart-3: 185 100% 47%;
+    --chart-4: 173 80% 40%;
+    --chart-5: 160 84% 39%;
+    --radius: 0.75rem;
+  }
+  .dark {
+    --background: 220 30% 3%;
+    --foreground: 0 0% 98%;
+    --card: 220 30% 3%;
+    --card-foreground: 0 0% 98%;
+    --popover: 220 30% 3%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 200 98% 39%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 220 30% 9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 220 30% 9%;
+    --muted-foreground: 220 9% 54%;
+    --accent: 195 100% 50%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 30% 18%;
+    --input: 220 30% 18%;
+    --ring: 200 98% 39%;
+    --chart-1: 200 98% 39%;
+    --chart-2: 195 100% 50%;
+    --chart-3: 185 100% 47%;
+    --chart-4: 173 80% 40%;
+    --chart-5: 160 84% 39%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  .container {
+    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+  
+  .gradient-bg {
+    background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+  }
+  
+  .glass-effect {
+    @apply bg-white/80 backdrop-blur-sm border border-white/20;
+  }
+  
+  .question-card {
+    @apply bg-white border border-blue-100 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-200;
+  }
+  
+  .result-positive {
+    @apply bg-green-50 border-green-200 text-green-800;
+  }
+  
+  .result-negative {
+    @apply bg-red-50 border-red-200 text-red-800;
+  }
+  
+  .loading-spinner {
+    @apply animate-spin rounded-full border-2 border-gray-300 border-t-blue-600;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.question-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.question-transition.slide-out {
+  transform: translateX(-100%);
+  opacity: 0;
+}
+
+.question-transition.slide-in {
+  transform: translateX(100%);
+  opacity: 0;
+}
