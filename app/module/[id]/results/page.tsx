@@ -113,7 +113,6 @@ export default function ModuleResultsPage() {
                     <TableRow>
                       <TableHead>Student</TableHead>
                       <TableHead>Score</TableHead>
-                      <TableHead>Percentage</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
@@ -124,13 +123,8 @@ export default function ModuleResultsPage() {
                         <TableCell>
                           <div className="flex items-center">
                             <User className="mr-2 h-4 w-4 text-gray-400" />
-                            <span className="font-medium">{result.student.full_name}</span>
+                            <span className="font-medium">{result.student === null ? "Anonymouse" : result.student}</span>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className={`font-semibold ${getScoreColor(result.score / result.answers.length * 100)}`}>
-                            {result.score}/{result.answers.length}
-                          </span>
                         </TableCell>
                         <TableCell>
                           <Badge variant={getScoreBadge(result.score / result.answers.length * 100)}>
@@ -140,7 +134,7 @@ export default function ModuleResultsPage() {
                         <TableCell>
                           <div className="flex items-center text-sm text-gray-600">
                             <Calendar className="mr-2 h-4 w-4" />
-                            {format(new Date(result.started_at), 'MMM d, yyyy HH:mm')} — {format(new Date(result.finished_at), 'MMM d, yyyy HH:mm')}
+                            {format(new Date(result.started_at), 'MMM d, yyyy HH:mm')} — {format(new Date(result.finished_at), 'HH:mm')}
                           </div>
                         </TableCell>
                         <TableCell>

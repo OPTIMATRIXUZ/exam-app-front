@@ -1,6 +1,6 @@
 import { AuthTokens, Module, Question, TestAttempt, TestPreview, TestStart, TestResult, TestAnswer, UserFull } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://exam-app-back-a6j6t00bj-optimatrix.vercel.app';
 
 class ApiClient {
   private baseURL: string;
@@ -213,7 +213,7 @@ class ApiClient {
   }
 
   async getResult(moduleId: number, resultId: number): Promise<TestResult> {
-    return this.request<TestResult>(`/api/modules/${moduleId}/results/${resultId}/`);
+    return this.request<TestResult>(`/api/modules/${moduleId}/results/?attempt_id=${resultId}`);
   }
 
   // Test endpoints

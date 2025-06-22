@@ -12,15 +12,36 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useEffect, useState } from 'react';
 
 export function Header() {
-  const { user, isAuthenticated, logout } = useAuthStore();
   const router = useRouter();
+  const [hydrated, setHydrated] = useState(false);
+
+  const { user, isAuthenticated, logout, loadUser } = useAuthStore();
+
+  // 1) Mark hydration
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  // 2) Once hydrated & authenticated, reload the user
+  useEffect(() => {
+    if (!hydrated) return;
+    if (isAuthenticated) {
+      loadUser();
+    }
+  }, [hydrated, isAuthenticated, loadUser]);
 
   const handleLogout = () => {
     logout();
     router.push('/');
   };
+
+  // 3) Don’t render until hydration is done
+  if (!hydrated) {
+    return null;  // or a small placeholder
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-sm">
@@ -42,12 +63,12 @@ export function Header() {
                     Dashboard
                   </Button>
                 </Link>
-                
+
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm">
                       <User className="mr-2 h-4 w-4" />
-                      {user?.user.full_name || 'User'}
+                      {user?.user.full_name ?? 'User'}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">

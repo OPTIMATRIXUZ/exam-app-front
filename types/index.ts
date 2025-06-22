@@ -44,7 +44,7 @@ export interface Question {
 
 export interface TestAttempt {
   id: number;
-  student: User;
+  student: string;
   score: number;
   started_at: string;
   finished_at: string;
