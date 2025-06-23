@@ -1,6 +1,6 @@
 import { AuthTokens, Module, Question, TestAttempt, TestPreview, TestStart, TestResult, TestAnswer, UserFull } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://exam-app-back-a6j6t00bj-optimatrix.vercel.app';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://exam-app-back.vercel.app/';
 
 class ApiClient {
   private baseURL: string;
